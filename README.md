@@ -26,9 +26,9 @@ Unlike generic Cypher assistants, this skill acts as a **strict compliance firew
 
 ## Overview
 
-AI agents working with graph databases frequently hallucinate — inventing node labels, relationship types, or properties that do not exist. This skill eliminates that failure mode entirely by grounding every query generation step in a live, machine-readable snapshot of your Neo4j schema.
+AI agents working with graph databases frequently hallucinate by inventing node labels, relationship types, or properties that do not exist. This skill eliminates that failure mode entirely by grounding every query generation step in a live, machine-readable snapshot of your Neo4j schema.
 
-**Key guarantees:**
+**Zero-Hallucination Guardrails:**
 
 - The agent reads `assets/schema.json` before writing a single line of Cypher.
 - Any entity not found in the schema causes an immediate halt and a structured validation report.
