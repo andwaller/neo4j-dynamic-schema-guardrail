@@ -1,10 +1,12 @@
 # Neo4j Dynamic Schema Guardrail & Cypher 25 Assistant
 
-> A zero-infrastructure, file-based enforcement layer that any AI coding agent picks up automatically — no server, no library, no plugin, no configuration.
+> A **graph modeling and import tool for new databases** — define your schema from CSV data before the database exists, generate validated Cypher 25 import scripts, and build your graph with confidence. Also works as a file-based schema enforcement layer for existing databases.
 
-> A **Neo4j Agent Skill** built on the Agent Instruction Protocol (AIP). Designed to complement the [neo4j-skills](https://github.com/neo4j-contrib/neo4j-skills) ecosystem as the validation layer between data modeling and Cypher generation — forcing AI agents to validate every request against your Neo4j database structure before writing a single line of Cypher 25.
+> A **Neo4j Agent Skill** built on the Agent Instruction Protocol (AIP). Designed to complement the [neo4j-skills](https://github.com/neo4j-contrib/neo4j-skills) ecosystem — particularly useful before a database exists, where the neo4j-cypher-skill's live schema introspection cannot yet run.
 
-Unlike generic Cypher assistants, this skill acts as a **strict compliance firewall** — preventing the agent from fabricating missing properties, nodes, or relationships that do not exist in your schema, enforcing property types, and correcting relationship directions before a single line of Cypher is written.
+**Primary use case:** You have CSV data and want to build a Neo4j graph. The agent reads your data, defines the schema, generates validated import scripts, and builds the database — all before a live connection exists.
+
+**Secondary use case:** Schema versioned as a file in the repo — works offline, in CI, and across teams without requiring a live database connection.
 
 ---
 
@@ -64,36 +66,7 @@ AI agents working with graph databases frequently hallucinate by inventing node 
 
 ## How It Works
 
-### Path 1 — Existing Database
-
-```
-Existing database
-    │
-    ▼
-┌─────────────────────────────────┐
-│  generate_schema.py             │  ← Pulls live schema via APOC
-└────────────────┬────────────────┘
-                 │
-    ▼
-┌─────────────────────────────────┐
-│  assets/schema.json             │  ← Ground truth, versioned in repo
-└────────────────┬────────────────┘
-                 │
-    ▼
-┌─────────────────────────────────┐
-│  Agent reads SKILL.md           │  ← Picks up guardrail rules
-└────────────────┬────────────────┘
-                 │
-         ┌───────┴───────┐
-         │               │
-    PASS ▼          FAIL ▼
-┌──────────────┐  ┌──────────────────────────┐
-│ Generate     │  │ Validation report        │
-│ Cypher 25    │  │ halt, do not guess       │
-└──────────────┘  └──────────────────────────┘
-```
-
-### Path 2 — New Database from CSV or Description
+### Path 1 — New Database from CSV or Description *(primary)*
 
 ```
 CSV files or data description
@@ -123,6 +96,37 @@ CSV files or data description
 ┌─────────────────────────────────┐
 │  generate_schema.py             │  ← Verify live schema matches intent
 └─────────────────────────────────┘
+```
+
+### Path 2 — Existing Database *(secondary)*
+
+Useful when you want schema versioned in the repo, available offline, or visible across the team without requiring a live connection. The neo4j-cypher-skill already handles live schema introspection well — this path adds the file-based layer on top.
+
+```
+Existing database
+    │
+    ▼
+┌─────────────────────────────────┐
+│  generate_schema.py             │  ← Pulls live schema via APOC
+└────────────────┬────────────────┘
+                 │
+    ▼
+┌─────────────────────────────────┐
+│  assets/schema.json             │  ← Versioned in repo, works offline
+└────────────────┬────────────────┘
+                 │
+    ▼
+┌─────────────────────────────────┐
+│  Agent reads SKILL.md           │  ← Picks up guardrail rules
+└────────────────┬────────────────┘
+                 │
+         ┌───────┴───────┐
+         │               │
+    PASS ▼          FAIL ▼
+┌──────────────┐  ┌──────────────────────────┐
+│ Generate     │  │ Validation report        │
+│ Cypher 25    │  │ halt, do not guess       │
+└──────────────┘  └──────────────────────────┘
 ```
 
 ---
