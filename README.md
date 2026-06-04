@@ -6,6 +6,8 @@ Unlike generic Cypher assistants, this skill acts as a **strict compliance firew
 
 ---
 
+![Image #3](assets/skill-in-action.png)
+
 ## Table of Contents
 
 - [Overview](#overview)
