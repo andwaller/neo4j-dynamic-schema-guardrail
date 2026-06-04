@@ -23,6 +23,14 @@ Install driver (skip if using HTTP API):
 pip install neo4j
 ```
 
+## Which Path?
+
+| Situation | Path |
+|---|---|
+| No database yet — have CSV or data description | **A** — `define_schema.py` |
+| Existing Neo4j database with APOC | **B** — `generate_schema.py` |
+| Have Neo4j standard JSON or graphrag schema file | **C** — `import_neo4j_schema.py` |
+
 ### Path A — New database from CSV or description
 Tell agent what data you have. Agent runs `define_schema.py`, fills labels/properties/relationships from CSV structure. No manual input.
 ```bash
@@ -34,19 +42,29 @@ python scripts/generate_schema.py
 ```
 
 ### Path B — Existing database
+Credentials are read from environment variables. Store in `.env` — verify `.env` is in `.gitignore` before proceeding. Never hardcode credentials.
+
 ```bash
-# Requires APOC on your Neo4j instance
-export NEO4J_URI="neo4j+s://<instance>.databases.neo4j.io"
-export NEO4J_USERNAME="neo4j"
-export NEO4J_PASSWORD="your-password"
 python scripts/generate_schema.py
 ```
+
+If fails with `APOC not found`: APOC is not installed on your instance. Either install the [APOC plugin](https://neo4j.com/labs/apoc/) or use the HTTP API fallback:
+```bash
+# HTTP API — no neo4j driver needed, plain Python
+curl -X POST https://<instance>.databases.neo4j.io/db/neo4j/query/v2 \
+  -u <username>:<password> -H "Content-Type: application/json" \
+  -d '{"statement": "CALL db.schema.visualization()"}'
+```
+
+If connection fails: check `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD` are set. Do NOT hardcode values — use env vars only.
 
 ### Path C — Neo4j standard JSON (graphrag, graph-schema-introspector, mcp-neo4j-data-modeling)
 ```bash
 python scripts/import_neo4j_schema.py path/to/schema.json
 ```
 Accepts: `graph-schema-introspector`, `graph-schema-json-js-utils`, `mcp-neo4j-data-modeling`, and `neo4j-graphrag-python` SchemaBuilder format.
+
+If fails with `Unrecognised schema format`: schema does not match graphrag or Neo4j standard JSON structure. Use Path A or B to generate schema directly.
 
 ---
 
