@@ -19,10 +19,12 @@ Unlike generic Cypher assistants, this skill acts as a **strict compliance firew
 - [Usage](#usage)
   - [Step 1: Generate Your Schema](#step-1-generate-your-schema)
   - [Step 2: Activate the Skill](#step-2-activate-the-skill)
+- [Schema Sources](#schema-sources)
 - [Schema Validation Example](#schema-validation-example)
 - [Property Type Validation Example](#property-type-validation-example)
 - [Relationship Direction Validation Example](#relationship-direction-validation-example)
 - [Cypher Generation Example](#cypher-generation-example)
+- [Changelog](#changelog)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -87,7 +89,9 @@ neo4j-dynamic-schema-guardrail/
 ├── assets/
 │   └── schema.json                 # Populated ground-truth graph schema (git-ignored in live use)
 ├── scripts/
-│   └── generate_schema.py          # Python sync script using Neo4j APOC metadata
+│   ├── generate_schema.py          # Pull schema from an existing Neo4j DB via APOC
+│   ├── define_schema.py            # Interactively define schema.json for a new database
+│   └── import_neo4j_schema.py      # Convert Neo4j standard JSON format to guardrail format
 └── examples/
     └── star-wars-lego/
         ├── README.md               # Step-by-step instructions for the example
@@ -179,6 +183,36 @@ Add this repository as an Agent Skill in your AI coding agent (Claude Code, Curs
 1. Read `assets/schema.json` before every Cypher generation task.
 2. Validate all requested entities against the schema.
 3. Either generate a valid Cypher 25 query or emit a schema validation report.
+
+---
+
+## Schema Sources
+
+The guardrail works with `assets/schema.json` regardless of how it was created. Three paths are supported:
+
+### Existing Database (APOC)
+Pull the schema directly from a live Neo4j instance:
+```bash
+python scripts/generate_schema.py
+```
+Requires APOC installed on your instance.
+
+---
+
+### New Database (Interactive)
+Define your schema from scratch without a live database:
+```bash
+python scripts/define_schema.py
+```
+The script walks you through adding node labels, properties, and relationships interactively and writes the result to `assets/schema.json`.
+
+---
+
+### Neo4j Standard JSON Format
+If you have a schema produced by [graph-schema-introspector](https://github.com/neo4j/graph-schema-introspector), [graph-schema-json-js-utils](https://github.com/neo4j/graph-schema-json-js-utils), or [mcp-neo4j-data-modeling](https://github.com/neo4j-contrib/mcp-neo4j/tree/main/servers/mcp-neo4j-data-modeling), convert it to the guardrail format in one step:
+```bash
+python scripts/import_neo4j_schema.py path/to/your-neo4j-schema.json
+```
 
 ---
 
@@ -285,6 +319,22 @@ Parameters: { themeName: "Technic" }
 ```
 
 All returned fields (`name`, `year`, `pieces`) are confirmed present in the `Set` node schema before generation.
+
+---
+
+## Changelog
+
+### v1.1.0 — 2026-06-04
+**Added: Property Type Enforcement and Relationship Direction Validation**
+- `SKILL.md` updated with two new guardrail rules:
+  - **Rule 4 — Property Type Enforcement:** Filter values are validated against the declared property type in `schema.json` before Cypher is generated. Type mismatches halt generation and report the conflict.
+  - **Rule 5 — Relationship Direction Enforcement:** Arrow direction is read from `schema.json` and enforced in every generated query. Wrong directions are corrected and flagged in the output.
+- Inspired by validation patterns from [graph-guard](https://github.com/c-fraser/graph-guard) and [cypher-query-validator](https://github.com/yWorks/cypher-query-validator).
+
+**Added: Broader Schema Source Support**
+- `scripts/define_schema.py` — new interactive script to build `assets/schema.json` for a new database without a live Neo4j connection.
+- `scripts/import_neo4j_schema.py` — new converter that translates the Neo4j standard graph schema JSON format (from `graph-schema-introspector`, `graph-schema-json-js-utils`, or `mcp-neo4j-data-modeling`) into the guardrail's APOC-compatible format.
+- The guardrail now fits both the *existing database* and *define-first* workflow patterns used across the Neo4j ecosystem.
 
 ---
 
