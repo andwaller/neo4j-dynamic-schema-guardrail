@@ -1,5 +1,7 @@
 # Neo4j Dynamic Schema Guardrail & Cypher 25 Assistant
 
+> A zero-infrastructure, file-based enforcement layer that any AI coding agent picks up automatically — no server, no library, no plugin, no configuration.
+
 > A **Neo4j Agent Skill** built on the Agent Instruction Protocol (AIP). Designed to complement the [neo4j-skills](https://github.com/neo4j-contrib/neo4j-skills) ecosystem as the validation layer between data modeling and Cypher generation — forcing AI agents to validate every request against your live Neo4j database structure before writing a single line of Cypher 25.
 
 Unlike generic Cypher assistants, this skill acts as a **strict compliance firewall** — preventing the agent from fabricating missing properties, nodes, or relationships that do not exist in your schema, enforcing property types, and correcting relationship directions before a single line of Cypher is written.
