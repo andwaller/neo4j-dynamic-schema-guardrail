@@ -1,6 +1,6 @@
 ---
 name: neo4j-dynamic-schema-guardrail
-description: A strict zero-hallucination guardrail that forces AI agents to dynamically validate user requests against a local Neo4j JSON schema before generating Cypher queries. Use this whenever writing, debugging, or analyzing database code.
+description: A Neo4j schema enforcement skill that validates every Cypher request against your live database structure before generating queries. Designed to complement the neo4j-skills ecosystem — use alongside the Cypher and Modeling skills as the validation layer that runs before any query is written.
 ---
 
 ## Instructions
