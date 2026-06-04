@@ -6,7 +6,7 @@
 
 **Primary use case:** You have CSV data and want to build a Neo4j graph. The agent reads your data, defines the schema, generates validated import scripts, and builds the database — all before a live connection exists.
 
-**Secondary use case:** Schema versioned as a file in the repo — works offline, in CI, and across teams without requiring a live database connection.
+**Secondary use case:** Schema versioned as a file in the repo — available in CI pipelines and visible to the whole team without each developer needing a direct database connection.
 
 ---
 
@@ -275,6 +275,76 @@ All returned fields (`name`, `year`, `pieces`) confirmed present in the `Set` no
 **Added: Broader Schema Source Support**
 - `scripts/define_schema.py` — agent-driven schema definition for new databases without a live connection.
 - `scripts/import_neo4j_schema.py` — converts Neo4j standard JSON format to guardrail format.
+
+---
+
+## Zero to Graph — A Real Session
+
+This is how the project was built. Starting point: CSV files downloaded from [Rebrickable.com/downloads](https://rebrickable.com/downloads/). No database. No schema. No prior Neo4j knowledge.
+
+**Step 1 — Define the schema from CSVs**
+
+The agent read the CSV files and drove `define_schema.py` automatically — no manual input:
+
+```
+User: I have these CSV files: themes.csv, sets.csv, minifigs.csv,
+      inventory_minifigs.csv, inventories.csv. Help me build a Neo4j graph.
+
+Agent: Reading CSV structure...
+       Defining schema — 3 node types, 2 relationship types detected.
+       Running define_schema.py...
+
+✅ Schema saved to assets/schema.json
+   Nodes:         ['Theme', 'Set', 'Minifig']
+   Relationships: ['HAS_MINIFIG', 'HAS_SET']
+```
+
+**Step 2 — Generate validated import scripts**
+
+```
+User: Generate Cypher import scripts for these CSVs.
+
+Agent: Schema Validation
+       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       Node: Theme    | ✅ FOUND
+       Node: Set      | ✅ FOUND
+       Node: Minifig  | ✅ FOUND
+       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       Generating import scripts...
+```
+
+**Step 3 — Build the database**
+
+```bash
+python examples/star-wars-lego/import_starwars.py
+python examples/star-wars-lego/import_minifigs.py
+```
+
+**Step 4 — Verify schema matches intent**
+
+```bash
+python scripts/generate_schema.py
+```
+
+```
+✅ Schema mapped to assets/schema.json
+   Theme: 5 nodes | Set: 1,122 nodes | Minifig: 1,528 nodes
+```
+
+**Step 5 — Query with guardrails active**
+
+```
+User: List all minifigures in the Cloud City set.
+
+Agent: ✅ Set — FOUND | ✅ Minifig — FOUND | ✅ HAS_MINIFIG — FOUND
+
+MATCH (s:Set {id: $setId})-[:HAS_MINIFIG]->(m:Minifig)
+RETURN m.name AS minifigName, m.fig_num AS figNum, m.num_parts AS numParts
+ORDER BY m.name
+// Parameters: { setId: "10123-1" }
+```
+
+Full Star Wars LEGO example with bundled data: [examples/star-wars-lego/](examples/star-wars-lego/)
 
 ---
 
