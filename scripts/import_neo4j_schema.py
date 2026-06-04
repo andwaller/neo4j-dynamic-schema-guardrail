@@ -1,10 +1,13 @@
 """
-Converts a Neo4j standard graph schema JSON file (produced by graph-schema-introspector,
-graph-schema-json-js-utils, or mcp-neo4j-data-modeling) into the guardrail's
-APOC-compatible assets/schema.json format.
+Converts Neo4j schema formats into the guardrail's APOC-compatible assets/schema.json.
+
+Supported formats (auto-detected):
+  - neo4j-graphrag-python SchemaBuilder JSON
+  - Neo4j standard graph schema JSON (graph-schema-introspector, graph-schema-json-js-utils,
+    mcp-neo4j-data-modeling)
 
 Usage:
-    python scripts/import_neo4j_schema.py <path-to-neo4j-schema.json>
+    python scripts/import_neo4j_schema.py <path-to-schema.json>
 """
 
 import json
@@ -27,6 +30,74 @@ def neo4j_type_to_apoc(type_def):
     return mapping.get(type_def.get("type", "string").lower(), "STRING")
 
 
+def convert_graphrag(schema):
+    """Convert neo4j-graphrag-python SchemaBuilder format to APOC format."""
+    data = schema.get("schema", schema)
+    apoc = {"value": {}}
+
+    # Parse node types — can be strings or dicts
+    node_labels = []
+    for nt in data.get("node_types", []):
+        if isinstance(nt, str):
+            label = nt
+            properties = {"name": {"type": "STRING", "indexed": False, "unique": False, "existence": False}}
+        else:
+            label = nt.get("label", nt.get("name", "Unknown"))
+            properties = {}
+            for prop in nt.get("properties", []):
+                if isinstance(prop, str):
+                    properties[prop] = {"type": "STRING", "indexed": False, "unique": False, "existence": False}
+                else:
+                    properties[prop.get("name", prop.get("token", "prop"))] = {
+                        "type": prop.get("type", "STRING").upper(),
+                        "indexed": False,
+                        "unique": False,
+                        "existence": False,
+                    }
+            if not properties:
+                properties["name"] = {"type": "STRING", "indexed": False, "unique": False, "existence": False}
+
+        apoc["value"][label] = {
+            "type": "node",
+            "count": 0,
+            "properties": properties,
+            "relationships": {},
+            "labels": [],
+        }
+        node_labels.append(label)
+
+    # Parse relationship types — can be strings or dicts
+    rel_labels = []
+    for rt in data.get("relationship_types", []):
+        label = rt if isinstance(rt, str) else rt.get("label", rt.get("name", "RELATED"))
+        rel_labels.append(label)
+        apoc["value"][label] = {"type": "relationship", "count": 0, "properties": {}}
+
+    # Wire up directions from patterns: [source, rel, target]
+    for pattern in data.get("patterns", []):
+        if len(pattern) != 3:
+            continue
+        from_label, rel_token, to_label = pattern
+
+        if from_label in apoc["value"]:
+            apoc["value"][from_label]["relationships"][rel_token] = {
+                "direction": "out",
+                "labels": [to_label],
+                "count": 0,
+                "properties": {},
+            }
+
+        if to_label in apoc["value"]:
+            apoc["value"][to_label]["relationships"][rel_token] = {
+                "direction": "in",
+                "labels": [from_label],
+                "count": 0,
+                "properties": {},
+            }
+
+    return apoc
+
+
 def resolve_ref(ref, node_labels, node_obj_types):
     key = ref.lstrip("#")
     if key in node_labels:
@@ -38,7 +109,8 @@ def resolve_ref(ref, node_labels, node_obj_types):
     return key
 
 
-def convert(neo4j_schema):
+def convert_standard(neo4j_schema):
+    """Convert Neo4j standard graph schema JSON format to APOC format."""
     graph = neo4j_schema.get("graphSchemaRepresentation", {}).get("graphSchema", {})
 
     node_labels = {nl["$id"]: nl["token"] for nl in graph.get("nodeLabels", [])}
@@ -84,18 +156,12 @@ def convert(neo4j_schema):
 
         if from_label in apoc["value"]:
             apoc["value"][from_label]["relationships"][rel_token] = {
-                "direction": "out",
-                "labels": [to_label],
-                "count": 0,
-                "properties": rel_props,
+                "direction": "out", "labels": [to_label], "count": 0, "properties": rel_props,
             }
 
         if to_label in apoc["value"]:
             apoc["value"][to_label]["relationships"][rel_token] = {
-                "direction": "in",
-                "labels": [from_label],
-                "count": 0,
-                "properties": rel_props,
+                "direction": "in", "labels": [from_label], "count": 0, "properties": rel_props,
             }
 
         apoc["value"][rel_token] = {
@@ -107,16 +173,36 @@ def convert(neo4j_schema):
     return apoc
 
 
+def detect_and_convert(schema):
+    """Auto-detect schema format and convert to APOC."""
+    # graphrag format: has 'schema' key with 'node_types' and 'patterns'
+    data = schema.get("schema", schema)
+    if "node_types" in data and "patterns" in data:
+        print("Detected: neo4j-graphrag-python SchemaBuilder format")
+        return convert_graphrag(schema)
+
+    # Neo4j standard JSON format
+    if "graphSchemaRepresentation" in schema:
+        print("Detected: Neo4j standard graph schema JSON format")
+        return convert_standard(schema)
+
+    raise ValueError(
+        "Unrecognised schema format. Supported: neo4j-graphrag-python SchemaBuilder, "
+        "Neo4j standard graph schema JSON (graphSchemaRepresentation)."
+    )
+
+
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python scripts/import_neo4j_schema.py <path-to-neo4j-schema.json>")
+        print("Usage: python scripts/import_neo4j_schema.py <path-to-schema.json>")
+        print("Supported formats: neo4j-graphrag-python SchemaBuilder, Neo4j standard graph schema JSON")
         sys.exit(1)
 
     input_path = sys.argv[1]
     with open(input_path, "r", encoding="utf-8") as f:
-        neo4j_schema = json.load(f)
+        schema = json.load(f)
 
-    apoc = convert(neo4j_schema)
+    apoc = detect_and_convert(schema)
 
     output_path = os.path.join("assets", "schema.json")
     os.makedirs("assets", exist_ok=True)
