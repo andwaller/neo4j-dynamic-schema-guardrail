@@ -57,7 +57,7 @@ AI agents working with graph databases frequently hallucinate by inventing node 
 
 - The agent reads `assets/schema.json` before writing a single line of Cypher.
 - Any entity not found in the schema causes an immediate halt and a structured validation report.
-- Close matches are suggested before halting — "Did you mean: Minifig?"
+- Close matches are suggested before halting — "Did you mean: Theme?"
 - Filter values are checked against the declared property type — type mismatches halt generation.
 - Relationship directions are enforced from the schema — wrong arrows are caught and corrected.
 - All generated queries use **Cypher 25** parameter syntax (`$param`).
