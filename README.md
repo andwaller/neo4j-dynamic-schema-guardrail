@@ -51,7 +51,7 @@ Parameters: { setId: "10123-1" }
 
 ## Overview
 
-AI agents working with graph databases frequently hallucinate by inventing node labels, relationship types, or properties that do not exist. This skill eliminates that failure mode entirely by grounding every query generation step in a local schema snapshot.
+AI agents working with graph databases frequently hallucinate by inventing node labels, relationship types, or properties that do not exist. This skill reduces that failure mode by grounding every query generation step in a local schema snapshot.
 
 **Zero-Hallucination Guardrails:**
 
@@ -60,7 +60,7 @@ AI agents working with graph databases frequently hallucinate by inventing node 
 - Close matches are suggested before halting — "Did you mean: Minifig?"
 - Filter values are checked against the declared property type — type mismatches halt generation.
 - Relationship directions are enforced from the schema — wrong arrows are caught and corrected.
-- All generated queries use modern **Cypher 25** parameter syntax (`$param`).
+- All generated queries use **Cypher 25** parameter syntax (`$param`).
 
 ---
 
@@ -100,7 +100,7 @@ CSV files or data description
 
 ### Path 2 — Existing Database *(secondary)*
 
-Useful when you want schema versioned in the repo, available offline, or visible across the team without requiring a live connection. The neo4j-cypher-skill already handles live schema introspection well — this path adds the file-based layer on top.
+Useful when you want schema versioned in the repo and visible across the team without each developer needing a direct database connection. The neo4j-cypher-skill already handles live schema introspection well — this path adds the file-based layer on top.
 
 ```
 Existing database
@@ -112,7 +112,7 @@ Existing database
                  │
     ▼
 ┌─────────────────────────────────┐
-│  assets/schema.json             │  ← Versioned in repo, works offline
+│  assets/schema.json             │  ← Versioned in repo, visible to team
 └────────────────┬────────────────┘
                  │
     ▼
@@ -135,7 +135,7 @@ Existing database
 
 - Python 3.9 or higher
 - The `neo4j` Python driver (`pip install neo4j`)
-- A Neo4j instance with APOC (for Path 1 only)
+- A Neo4j instance with APOC (for Path 2 — existing database only)
 
 Verify APOC is available:
 ```cypher
@@ -163,7 +163,7 @@ python scripts/define_schema.py
 ```bash
 python scripts/import_neo4j_schema.py path/to/your-neo4j-schema.json
 ```
-Accepts schemas from `graph-schema-introspector`, `graph-schema-json-js-utils`, or `mcp-neo4j-data-modeling`.
+Accepts schemas from `graph-schema-introspector`, `graph-schema-json-js-utils`, `mcp-neo4j-data-modeling`, and `neo4j-graphrag-python` SchemaBuilder.
 
 ---
 
