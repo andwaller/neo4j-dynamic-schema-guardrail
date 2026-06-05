@@ -103,12 +103,12 @@ def main():
         rel_types.add(rel)
         print(f"  ({from_label})-[:{rel}]->({to_label}) added.")
 
-    output_path = os.path.join("assets", "schema.json")
-    os.makedirs("assets", exist_ok=True)
+    db_name = input("\nDatabase name for schema file (e.g. 'movies', 'supply-chain'): ").strip() or "neo4j"
+    output_path = f"{db_name}-schema.json"
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(schema, f, indent=2)
 
-    print(f"\n✅ Schema saved to {output_path}")
+    print(f"\nSchema saved to {output_path}")
     print(f"   Nodes:         {node_labels}")
     print(f"   Relationships: {sorted(rel_types)}")
 

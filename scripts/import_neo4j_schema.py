@@ -204,8 +204,10 @@ def main():
 
     apoc = detect_and_convert(schema)
 
-    output_path = os.path.join("assets", "schema.json")
-    os.makedirs("assets", exist_ok=True)
+    # Output named after input file: movies-schema.json → movies-schema.json (passthrough)
+    # or derive from input: my-schema.json → my-schema.json
+    base = os.path.splitext(os.path.basename(input_path))[0]
+    output_path = f"{base}.json" if base.endswith("-schema") else f"{base}-schema.json"
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(apoc, f, indent=2)
 
